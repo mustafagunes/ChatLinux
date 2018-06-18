@@ -1,11 +1,18 @@
-#include<iostream>
-#include<string.h>
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<netinet/in.h>
-#include<arpa/inet.h>
-#include<stdlib.h>
-#include<unistd.h>
+/*!
+ * Simple chat program (server side).cpp - http://github.com/hassanyf
+ * Version - 2.0.1
+ *
+ * Copyright (c) 2016 Hassan M. Yousuf
+ */
+
+#include <iostream>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -13,70 +20,65 @@ int main()
 {
     int client, server;
     int portNum = 1500;
+    bool isExit = false;
     int bufsize = 1024;
     char buffer[bufsize];
-    bool isExit = false;
 
     struct sockaddr_in server_addr;
     socklen_t size;
 
-    // init socket.
+    /* ---------- ESTABLISHING SOCKET CONNECTION ----------*/
 
     client = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (client < 0)
+    if (client < 0) 
     {
-        cout << "\nError establishing connection." << endl;
+        cout << "\nError establishing socket..." << endl;
         exit(1);
     }
 
-    cout << "Server Socket connection created..." << endl;
+    cout << "\n=> Socket server has been created..." << endl;
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htons(INADDR_ANY);
     server_addr.sin_port = htons(portNum);
 
-    // binding socket
+    /* ---------- BINDING THE SOCKET ---------- */
 
-    if (bind(client, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    if ((bind(client, (struct sockaddr*)&server_addr,sizeof(server_addr))) < 0) 
     {
-        cout << "Error binding socket..." << endl;
-        exit(1);
+        cout << "=> Error binding connection, the socket has already been established..." << endl;
+        return -1;
     }
 
     size = sizeof(server_addr);
-    cout << "Loking for clients..." << endl;
+    cout << "=> Looking for clients..." << endl;
 
-    // listening socket
+    /* ------------- LISTENING CALL ------------- */
 
     listen(client, 1);
 
-    // accept client
+    /* ------------- ACCEPTING CLIENTS  ------------- */
 
-    server = accept(client, (struct sockaddr*)&server_addr, &size);
+    int clientCount = 1;
+    server = accept(client,(struct sockaddr *)&server_addr,&size);
 
+    // first check if it is valid or not
+    if (server < 0) 
+        cout << "=> Error on accepting..." << endl;
 
-    if (server > 0)
+    while (server > 0) 
     {
-        cout << "Error on accepting..." << endl;
-        exit(1);
-    }
-
-    while (server > 0)
-    {
-        strcpy(buffer, "Server connected...\n");
+        strcpy(buffer, "=> Server connected...\n");
         send(server, buffer, bufsize, 0);
-
-        cout << "Connected with client..." << endl;
-        cout << "Enter # to end the connection" << endl;
+        cout << "=> Connected with the client #" << clientCount << ", you are good to go..." << endl;
+        cout << "\n=> Enter # to end the connection\n" << endl;
 
         cout << "Client: ";
-
         do {
             recv(server, buffer, bufsize, 0);
-            cout << "buffer" << " ";
-            if (*buffer == '#')
-            {
+            cout << buffer << " ";
+            if (*buffer == '#') {
                 *buffer = '*';
                 isExit = true;
             }
@@ -87,8 +89,7 @@ int main()
             do {
                 cin >> buffer;
                 send(server, buffer, bufsize, 0);
-                if (*buffer == '#')
-                {
+                if (*buffer == '#') {
                     send(server, buffer, bufsize, 0);
                     *buffer = '*';
                     isExit = true;
@@ -99,19 +100,23 @@ int main()
             do {
                 recv(server, buffer, bufsize, 0);
                 cout << buffer << " ";
-                if(*buffer == '#')
-                {
-                    *buffer = '*';
+                if (*buffer == '#') {
+                    *buffer == '*';
                     isExit = true;
                 }
-            } while(*buffer != '*');
-        } while(!isExit);
+            } while (*buffer != '*');
+        } while (!isExit);
 
-        cout << "Connection terminated..." << endl;
-        cout << "Goodbye..." << endl;
+        /* ---------------- CLOSE CALL ------------- */
+
+        // inet_ntoa converts packet data to IP, which was taken from client
+        cout << "\n\n=> Connection terminated with IP " << inet_ntoa(server_addr.sin_addr);
+        close(server);
+        cout << "\nGoodbye..." << endl;
         isExit = false;
         exit(1);
     }
+
     close(client);
     return 0;
 }
